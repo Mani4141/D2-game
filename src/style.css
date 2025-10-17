@@ -3,6 +3,7 @@
   vertical-align: top;
   border: 1px solid salmon;
 }
+
 body {
   font-family:
     system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -11,17 +12,34 @@ body {
   color: #111;
 }
 
-/* Canvas sizing/visuals */
-.game-canvas {
-  width: 256px;
-  height: 256px;
-  border: 1px solid #000;
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-  display: block;
-  margin-top: 12px;
-  background: #fff;
+/* Controls row for buttons */
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
 }
+
+/* Shared button style (used by Clear/Undo/Redo) */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #00449f;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+.btn:hover {
+  background-color: #003080;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .clear-button {
   margin-top: 12px;
   padding: 8px 16px;
@@ -34,7 +52,17 @@ body {
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
   transition: background-color 0.2s ease;
 }
-
 .clear-button:hover {
   background-color: #003080;
+}
+
+.game-canvas {
+  width: 256px;
+  height: 256px;
+  border: 1px solid #000;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  display: block;
+  margin-top: 12px;
+  background: #fff;
 }
