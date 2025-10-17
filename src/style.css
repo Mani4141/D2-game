@@ -3,3 +3,22 @@
   vertical-align: top;
   border: 1px solid salmon;
 }
+body {
+  font-family:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  padding: 16px;
+  background: #f7f7fb;
+  color: #111;
+}
+
+/* Canvas sizing/visuals */
+.game-canvas {
+  width: 256px;
+  height: 256px;
+  border: 1px solid #000;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  display: block;
+  margin-top: 12px;
+  background: #fff;
+}
