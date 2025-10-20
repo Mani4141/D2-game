@@ -42,6 +42,43 @@ function createMarkerLine(
   };
 }
 
+interface ToolPreview {
+  draw(ctx: CanvasRenderingContext2D): void;
+  moveTo(x: number, y: number): void;
+  setThickness(th: number): void;
+}
+
+function createMarkerPreview(
+  thickness: number,
+  color = "#00449f",
+): ToolPreview {
+  let pos: Point | null = null;
+  let w = thickness;
+
+  return {
+    moveTo(x: number, y: number) {
+      pos = { x, y };
+    },
+    setThickness(th: number) {
+      w = th;
+    },
+    draw(ctx: CanvasRenderingContext2D) {
+      if (!pos) return;
+      // draw a circle the size of the marker tip
+      ctx.save();
+      ctx.beginPath();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = "rgba(0,0,0,0.06)";
+      const r = Math.max(1, w / 2);
+      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    },
+  };
+}
+
 /** DATA: display list + redo stack hold Commands */
 const displayList: Command[] = [];
 const redoStack: Command[] = [];
@@ -51,8 +88,10 @@ let currentCommand: Command | null = null;
 type Tool = { label: "Thin" | "Thick"; thickness: number };
 const THIN: Tool = { label: "Thin", thickness: 2 };
 const THICK: Tool = { label: "Thick", thickness: 6 };
-// default tool
 let currentTool: Tool = THIN;
+
+/** Preview state (nullable reference) */
+let preview: ToolPreview | null = createMarkerPreview(currentTool.thickness);
 
 /** UI */
 const appTitle = document.createElement("h1");
@@ -105,31 +144,40 @@ document.body.appendChild(canvas);
 const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 if (!ctx) throw new Error("Canvas rendering context not found.");
 
-/** Event + wiring */
+/** Events */
 const DRAWING_CHANGED = "drawing-changed" as const;
+const TOOL_MOVED = "tool-moved" as const;
 
-function notifyDrawingChanged() {
-  canvas.dispatchEvent(new Event(DRAWING_CHANGED));
-  updateButtonState();
-}
-
+/** Button state updater */
 function updateButtonState() {
   undoButton.disabled = displayList.length === 0;
   redoButton.disabled = redoStack.length === 0;
 }
 
-function updateToolSelection() {
-  thinBtn.classList.toggle("selectedTool", currentTool === THIN);
-  thickBtn.classList.toggle("selectedTool", currentTool === THICK);
+function notifyDrawingChanged() {
+  canvas.dispatchEvent(new Event(DRAWING_CHANGED));
+  updateButtonState();
+}
+function notifyToolMoved() {
+  canvas.dispatchEvent(new Event(TOOL_MOVED));
 }
 
-/** RENDER: ask each Command to draw itself */
+/** Shared renderer for both events */
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // draw committed commands
+  for (const cmd of displayList) cmd.display(ctx);
+  // draw preview only when not drawing
+  if (!isDrawing && preview) preview.draw(ctx);
+}
+
 canvas.addEventListener(
   DRAWING_CHANGED as unknown as string,
-  (() => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const cmd of displayList) cmd.display(ctx);
-  }) as EventListener,
+  (() => render()) as EventListener,
+);
+canvas.addEventListener(
+  TOOL_MOVED as unknown as string,
+  (() => render()) as EventListener,
 );
 
 let isDrawing = false;
@@ -139,34 +187,50 @@ function pointFromEvent(e: MouseEvent): Point {
   return { x: e.offsetX, y: e.offsetY };
 }
 
-/** INPUT -> MODEL */
+/** INPUT -> MODEL / PREVIEW */
 canvas.addEventListener("mousedown", (e: MouseEvent) => {
   isDrawing = true;
 
-  // new action invalidates redo history
+  // New action invalidates redo history
   redoStack.length = 0;
 
   const start = pointFromEvent(e);
   currentCommand = createMarkerLine(start, currentTool.thickness);
   displayList.push(currentCommand);
+
+  // Hide preview while drawing
   notifyDrawingChanged();
 });
 
 canvas.addEventListener("mousemove", (e: MouseEvent) => {
-  if (!isDrawing || !currentCommand) return;
-  currentCommand.drag?.(e.offsetX, e.offsetY);
-  notifyDrawingChanged();
+  if (isDrawing) {
+    if (currentCommand) {
+      currentCommand.drag?.(e.offsetX, e.offsetY);
+      notifyDrawingChanged();
+    }
+    return;
+  }
+
+  // Not drawing: update preview position and fire tool-moved
+  if (!preview) preview = createMarkerPreview(currentTool.thickness);
+  preview.setThickness(currentTool.thickness);
+  preview.moveTo(e.offsetX, e.offsetY);
+  notifyToolMoved();
 });
 
 function endStroke() {
   if (!isDrawing) return;
   isDrawing = false;
   currentCommand = null;
-  // last mousemove already redrew
+  // Next mousemove will update and show preview again
 }
 
 canvas.addEventListener("mouseup", endStroke);
-canvas.addEventListener("mouseleave", endStroke);
+canvas.addEventListener("mouseleave", () => {
+  // Hide preview when cursor leaves canvas
+  preview = null;
+  notifyToolMoved();
+});
 
 /** Actions */
 clearButton.addEventListener("click", () => {
@@ -190,15 +254,25 @@ function redo() {
 undoButton.addEventListener("click", undo);
 redoButton.addEventListener("click", redo);
 
-/** Tool selection */
+/** Tool selection (also update preview thickness) */
+function updateToolSelection() {
+  thinBtn.classList.toggle("selectedTool", currentTool === THIN);
+  thickBtn.classList.toggle("selectedTool", currentTool === THICK);
+}
 thinBtn.addEventListener("click", () => {
   currentTool = THIN;
   updateToolSelection();
+  if (preview) preview.setThickness(currentTool.thickness);
+  notifyToolMoved();
 });
 thickBtn.addEventListener("click", () => {
   currentTool = THICK;
   updateToolSelection();
+  if (preview) preview.setThickness(currentTool.thickness);
+  notifyToolMoved();
 });
 
+/** Initial paint and UI state */
 updateToolSelection();
-notifyDrawingChanged();
+updateButtonState();
+notifyToolMoved();
