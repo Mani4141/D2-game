@@ -13,6 +13,7 @@ interface Point {
   y: number;
 }
 
+/* ========= Marker (freehand line) ========= */
 function createMarkerLine(
   start: Point,
   thickness: number,
@@ -42,35 +43,53 @@ function createMarkerLine(
   };
 }
 
+/* ========= Sticker (single emoji you can reposition) ========= */
+function createStickerCommand(emoji: string, start: Point, size = 24): Command {
+  let pos: Point = { ...start };
+  const fontSize = Math.max(12, size); // px
+
+  return {
+    drag(x: number, y: number) {
+      // Reposition sticker instead of leaving a trail
+      pos = { x, y };
+    },
+    display(ctx: CanvasRenderingContext2D) {
+      ctx.save();
+      ctx.font =
+        `${fontSize}px system-ui, Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(emoji, pos.x, pos.y);
+      ctx.restore();
+    },
+  };
+}
+
+/* ========= PREVIEW OBJECTS ========= */
 interface ToolPreview {
   draw(ctx: CanvasRenderingContext2D): void;
   moveTo(x: number, y: number): void;
-  setThickness(th: number): void;
 }
 
+/** Circle preview for marker thickness */
 function createMarkerPreview(
   thickness: number,
   color = "#00449f",
 ): ToolPreview {
   let pos: Point | null = null;
-  let w = thickness;
+  const r = Math.max(1, thickness / 2);
 
   return {
     moveTo(x: number, y: number) {
       pos = { x, y };
     },
-    setThickness(th: number) {
-      w = th;
-    },
     draw(ctx: CanvasRenderingContext2D) {
       if (!pos) return;
-      // draw a circle the size of the marker tip
       ctx.save();
       ctx.beginPath();
       ctx.lineWidth = 1;
       ctx.strokeStyle = color;
       ctx.fillStyle = "rgba(0,0,0,0.06)";
-      const r = Math.max(1, w / 2);
       ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
@@ -79,21 +98,82 @@ function createMarkerPreview(
   };
 }
 
-/** DATA: display list + redo stack hold Commands */
+/** Preview that shows the emoji ghosted at the cursor */
+function createStickerPreview(emoji: string, size = 24): ToolPreview {
+  let pos: Point | null = null;
+  const fontSize = Math.max(12, size);
+
+  return {
+    moveTo(x: number, y: number) {
+      pos = { x, y };
+    },
+    draw(ctx: CanvasRenderingContext2D) {
+      if (!pos) return;
+      ctx.save();
+      ctx.globalAlpha = 0.65;
+      ctx.font =
+        `${fontSize}px system-ui, Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(emoji, pos.x, pos.y);
+      ctx.restore();
+    },
+  };
+}
+
+/* ========= DATA ========= */
 const displayList: Command[] = [];
 const redoStack: Command[] = [];
 let currentCommand: Command | null = null;
 
-/** Tool state */
-type Tool = { label: "Thin" | "Thick"; thickness: number };
-const THIN: Tool = { label: "Thin", thickness: 2 };
-const THICK: Tool = { label: "Thick", thickness: 6 };
+/* ========= TOOLS ========= */
+type MarkerTool = {
+  kind: "marker";
+  label: "Thin" | "Thick";
+  thickness: number;
+};
+type StickerTool = {
+  kind: "sticker";
+  label: string;
+  emoji: string;
+  size: number;
+};
+type Tool = MarkerTool | StickerTool;
+
+const THIN: MarkerTool = { kind: "marker", label: "Thin", thickness: 2 };
+const THICK: MarkerTool = { kind: "marker", label: "Thick", thickness: 6 };
+
+// stickers
+const STAR: StickerTool = {
+  kind: "sticker",
+  label: "⭐",
+  emoji: "⭐",
+  size: 28,
+};
+const HEART: StickerTool = {
+  kind: "sticker",
+  label: "❤️",
+  emoji: "❤️",
+  size: 28,
+};
+const FIRE: StickerTool = {
+  kind: "sticker",
+  label: "🔥",
+  emoji: "🔥",
+  size: 28,
+};
+
 let currentTool: Tool = THIN;
 
-/** Preview state (nullable reference) */
-let preview: ToolPreview | null = createMarkerPreview(currentTool.thickness);
+/* ========= PREVIEW ========= */
+let preview: ToolPreview | null = makePreviewForTool(currentTool);
+function makePreviewForTool(tool: Tool): ToolPreview {
+  return tool.kind === "marker"
+    ? createMarkerPreview(tool.thickness)
+    : createStickerPreview(tool.emoji, tool.size);
+}
 
-/** UI */
+/* ========= UI ========= */
 const appTitle = document.createElement("h1");
 appTitle.textContent = "D2 Game Demo";
 document.body.appendChild(appTitle);
@@ -102,10 +182,12 @@ const controls = document.createElement("div");
 controls.className = "controls";
 document.body.appendChild(controls);
 
+/* Tool rows */
 const toolRow = document.createElement("div");
 toolRow.className = "tool-row";
 controls.appendChild(toolRow);
 
+/* Marker buttons */
 const thinBtn = document.createElement("button");
 thinBtn.textContent = "Thin";
 thinBtn.className = "btn tool";
@@ -116,6 +198,27 @@ thickBtn.textContent = "Thick";
 thickBtn.className = "btn tool";
 toolRow.appendChild(thickBtn);
 
+/* Sticker buttons */
+const stickerRow = document.createElement("div");
+stickerRow.className = "tool-row";
+controls.appendChild(stickerRow);
+
+const starBtn = document.createElement("button");
+starBtn.textContent = STAR.label;
+starBtn.className = "btn tool";
+stickerRow.appendChild(starBtn);
+
+const heartBtn = document.createElement("button");
+heartBtn.textContent = HEART.label;
+heartBtn.className = "btn tool";
+stickerRow.appendChild(heartBtn);
+
+const fireBtn = document.createElement("button");
+fireBtn.textContent = FIRE.label;
+fireBtn.className = "btn tool";
+stickerRow.appendChild(fireBtn);
+
+/* Action row */
 const actionRow = document.createElement("div");
 actionRow.className = "action-row";
 controls.appendChild(actionRow);
@@ -135,6 +238,7 @@ redoButton.textContent = "Redo";
 redoButton.className = "btn";
 actionRow.appendChild(redoButton);
 
+/* Canvas */
 const canvas = document.createElement("canvas");
 canvas.width = 256;
 canvas.height = 256;
@@ -144,11 +248,11 @@ document.body.appendChild(canvas);
 const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 if (!ctx) throw new Error("Canvas rendering context not found.");
 
-/** Events */
+/* ========= Events ========= */
 const DRAWING_CHANGED = "drawing-changed" as const;
 const TOOL_MOVED = "tool-moved" as const;
 
-/** Button state updater */
+/* Button state updater */
 function updateButtonState() {
   undoButton.disabled = displayList.length === 0;
   redoButton.disabled = redoStack.length === 0;
@@ -162,7 +266,7 @@ function notifyToolMoved() {
   canvas.dispatchEvent(new Event(TOOL_MOVED));
 }
 
-/** Shared renderer for both events */
+/* Shared renderer for both events */
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   // draw committed commands
@@ -180,26 +284,33 @@ canvas.addEventListener(
   (() => render()) as EventListener,
 );
 
+/* ========= Input ========= */
 let isDrawing = false;
 
-/** Helpers */
 function pointFromEvent(e: MouseEvent): Point {
   return { x: e.offsetX, y: e.offsetY };
 }
 
-/** INPUT -> MODEL / PREVIEW */
 canvas.addEventListener("mousedown", (e: MouseEvent) => {
   isDrawing = true;
-
   // New action invalidates redo history
   redoStack.length = 0;
 
   const start = pointFromEvent(e);
-  currentCommand = createMarkerLine(start, currentTool.thickness);
-  displayList.push(currentCommand);
 
-  // Hide preview while drawing
-  notifyDrawingChanged();
+  if (currentTool.kind === "marker") {
+    currentCommand = createMarkerLine(start, currentTool.thickness);
+  } else {
+    // Sticker: create placed sticker at cursor
+    currentCommand = createStickerCommand(
+      currentTool.emoji,
+      start,
+      currentTool.size,
+    );
+  }
+
+  displayList.push(currentCommand);
+  notifyDrawingChanged(); // hide preview and show new command
 });
 
 canvas.addEventListener("mousemove", (e: MouseEvent) => {
@@ -212,8 +323,7 @@ canvas.addEventListener("mousemove", (e: MouseEvent) => {
   }
 
   // Not drawing: update preview position and fire tool-moved
-  if (!preview) preview = createMarkerPreview(currentTool.thickness);
-  preview.setThickness(currentTool.thickness);
+  if (!preview) preview = makePreviewForTool(currentTool);
   preview.moveTo(e.offsetX, e.offsetY);
   notifyToolMoved();
 });
@@ -222,7 +332,7 @@ function endStroke() {
   if (!isDrawing) return;
   isDrawing = false;
   currentCommand = null;
-  // Next mousemove will update and show preview again
+  // Next mousemove will rebuild & show preview
 }
 
 canvas.addEventListener("mouseup", endStroke);
@@ -232,7 +342,7 @@ canvas.addEventListener("mouseleave", () => {
   notifyToolMoved();
 });
 
-/** Actions */
+/* ========= Actions ========= */
 clearButton.addEventListener("click", () => {
   displayList.length = 0;
   redoStack.length = 0;
@@ -254,25 +364,42 @@ function redo() {
 undoButton.addEventListener("click", undo);
 redoButton.addEventListener("click", redo);
 
-/** Tool selection (also update preview thickness) */
+/* ========= Tool selection ========= */
 function updateToolSelection() {
-  thinBtn.classList.toggle("selectedTool", currentTool === THIN);
-  thickBtn.classList.toggle("selectedTool", currentTool === THICK);
-}
-thinBtn.addEventListener("click", () => {
-  currentTool = THIN;
-  updateToolSelection();
-  if (preview) preview.setThickness(currentTool.thickness);
-  notifyToolMoved();
-});
-thickBtn.addEventListener("click", () => {
-  currentTool = THICK;
-  updateToolSelection();
-  if (preview) preview.setThickness(currentTool.thickness);
-  notifyToolMoved();
-});
+  const isThin = currentTool.kind === "marker" && currentTool === THIN;
+  const isThick = currentTool.kind === "marker" && currentTool === THICK;
+  const isStar = currentTool.kind === "sticker" &&
+    currentTool.emoji === STAR.emoji;
+  const isHeart = currentTool.kind === "sticker" &&
+    currentTool.emoji === HEART.emoji;
+  const isFire = currentTool.kind === "sticker" &&
+    currentTool.emoji === FIRE.emoji;
 
-/** Initial paint and UI state */
+  thinBtn.classList.toggle("selectedTool", isThin);
+  thickBtn.classList.toggle("selectedTool", isThick);
+  starBtn.classList.toggle("selectedTool", isStar);
+  heartBtn.classList.toggle("selectedTool", isHeart);
+  fireBtn.classList.toggle("selectedTool", isFire);
+}
+
+function selectTool(tool: Tool) {
+  currentTool = tool;
+  updateToolSelection();
+  // Recreate preview for the new tool
+  preview = makePreviewForTool(currentTool);
+  notifyToolMoved(); // force immediate preview redraw per instructions
+}
+
+/* Marker tool clicks */
+thinBtn.addEventListener("click", () => selectTool(THIN));
+thickBtn.addEventListener("click", () => selectTool(THICK));
+
+/* Sticker tool clicks (fire tool-moved on click) */
+starBtn.addEventListener("click", () => selectTool(STAR));
+heartBtn.addEventListener("click", () => selectTool(HEART));
+fireBtn.addEventListener("click", () => selectTool(FIRE));
+
+/* ========= Initial paint and UI state ========= */
 updateToolSelection();
 updateButtonState();
 notifyToolMoved();
