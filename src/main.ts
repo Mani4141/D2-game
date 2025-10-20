@@ -1,15 +1,43 @@
 import "./style.css";
 
+interface DisplayCommand {
+  display(ctx: CanvasRenderingContext2D): void;
+}
+interface Draggable {
+  drag(x: number, y: number): void;
+}
+type Command = DisplayCommand & Partial<Draggable>;
+
 interface Point {
   x: number;
   y: number;
 }
-type Stroke = Point[];
 
-const strokes: Stroke[] = [];
-const redoStack: Stroke[] = [];
-let currentStroke: Stroke | null = null;
+function createMarkerLine(start: Point): Command {
+  const points: Point[] = [start];
 
+  return {
+    drag(x: number, y: number) {
+      points.push({ x, y });
+    },
+    display(ctx: CanvasRenderingContext2D) {
+      if (points.length === 0) return;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        const p = points[i];
+        ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+    },
+  };
+}
+
+const displayList: Command[] = [];
+const redoStack: Command[] = [];
+let currentCommand: Command | null = null;
+
+/** UI */
 const appTitle = document.createElement("h1");
 appTitle.textContent = "D2 Game Demo";
 document.body.appendChild(appTitle);
@@ -42,40 +70,32 @@ redoButton.textContent = "Redo";
 redoButton.className = "btn";
 controls.appendChild(redoButton);
 
-// Custom event name
+/** Event + wiring */
 const DRAWING_CHANGED = "drawing-changed" as const;
 
-/** Fire whenever the drawing model changes */
 function notifyDrawingChanged() {
   canvas.dispatchEvent(new Event(DRAWING_CHANGED));
   updateButtonState();
 }
 
-/** Enable/disable undo/redo based on stacks */
 function updateButtonState() {
-  undoButton.disabled = strokes.length === 0;
+  undoButton.disabled = displayList.length === 0;
   redoButton.disabled = redoStack.length === 0;
 }
 
-/** Redraw everything from the display list */
+/** RENDER: ask each Command to draw itself */
 canvas.addEventListener(
   DRAWING_CHANGED as unknown as string,
   (() => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Global style (individual commands could set their own if needed)
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
     ctx.strokeStyle = "#00449f";
 
-    for (const stroke of strokes) {
-      if (stroke.length === 0) continue;
-      ctx.beginPath();
-      ctx.moveTo(stroke[0].x, stroke[0].y);
-      for (let i = 1; i < stroke.length; i++) {
-        const p = stroke[i];
-        ctx.lineTo(p.x, p.y);
-      }
-      ctx.stroke();
+    for (const cmd of displayList) {
+      cmd.display(ctx);
     }
   }) as EventListener,
 );
@@ -87,60 +107,58 @@ function pointFromEvent(e: MouseEvent): Point {
   return { x: e.offsetX, y: e.offsetY };
 }
 
-/** INPUT -> MODEL (record points, then notify) */
 canvas.addEventListener("mousedown", (e: MouseEvent) => {
   isDrawing = true;
 
-  // Starting a new user action invalidates redo history
+  // New action invalidates redo history
   redoStack.length = 0;
 
-  currentStroke = [];
-  strokes.push(currentStroke);
-  currentStroke.push(pointFromEvent(e));
+  const start = pointFromEvent(e);
+  currentCommand = createMarkerLine(start);
+  displayList.push(currentCommand);
   notifyDrawingChanged();
 });
 
 canvas.addEventListener("mousemove", (e: MouseEvent) => {
-  if (!isDrawing || !currentStroke) return;
-  currentStroke.push(pointFromEvent(e));
+  if (!isDrawing || !currentCommand) return;
+  // If this command supports dragging, extend it
+  currentCommand.drag?.(e.offsetX, e.offsetY);
   notifyDrawingChanged();
 });
 
 function endStroke() {
   if (!isDrawing) return;
   isDrawing = false;
-  currentStroke = null;
-  // Last mousemove already notified
+  currentCommand = null;
+  // Last mousemove already triggered a redraw
 }
 
 canvas.addEventListener("mouseup", endStroke);
 canvas.addEventListener("mouseleave", endStroke);
 
-/** Clear resets model and redo stack */
+/** Clear / Undo / Redo operate on Commands now */
 clearButton.addEventListener("click", () => {
-  strokes.length = 0;
+  displayList.length = 0;
   redoStack.length = 0;
   notifyDrawingChanged();
 });
 
-/** Undo: move last stroke to redo stack */
 function undo() {
-  if (strokes.length === 0) return;
-  const popped = strokes.pop()!;
+  if (displayList.length === 0) return;
+  const popped = displayList.pop()!;
   redoStack.push(popped);
   notifyDrawingChanged();
 }
 
-/** Redo: move last redo stroke back to display list */
 function redo() {
   if (redoStack.length === 0) return;
   const popped = redoStack.pop()!;
-  strokes.push(popped);
+  displayList.push(popped);
   notifyDrawingChanged();
 }
 
 undoButton.addEventListener("click", undo);
 redoButton.addEventListener("click", redo);
 
-// Initial paint and button state
+/** Initial paint and button state */
 notifyDrawingChanged();
