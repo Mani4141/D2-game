@@ -66,3 +66,47 @@ body {
   margin-top: 12px;
   background: #fff;
 }
+/* Tool rows */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.tool-row, .action-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #00449f;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.02s ease;
+}
+.btn:hover {
+  background-color: #003080;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Visual feedback for selected tool */
+.tool.selectedTool {
+  outline: 2px solid #111;
+  background-color: #2a66d1;
+}
