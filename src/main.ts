@@ -228,6 +228,11 @@ redoButton.textContent = "Redo";
 redoButton.className = "btn";
 actionRow.appendChild(redoButton);
 
+const exportButton = document.createElement("button");
+exportButton.textContent = "Export";
+exportButton.className = "btn";
+actionRow.appendChild(exportButton);
+
 /* Canvas */
 const canvas = document.createElement("canvas");
 canvas.width = 256;
@@ -354,6 +359,28 @@ function redo() {
 undoButton.addEventListener("click", undo);
 redoButton.addEventListener("click", redo);
 
+exportButton.addEventListener("click", () => {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+
+  const exportCtx = exportCanvas.getContext("2d")!;
+
+  const scale = exportCanvas.width / canvas.width;
+  exportCtx.scale(scale, scale);
+
+  // Draw all saved commands (skip preview)
+  for (const cmd of displayList) {
+    cmd.display(exportCtx);
+  }
+
+  // Trigger PNG download
+  const anchor = document.createElement("a");
+  anchor.href = exportCanvas.toDataURL("image/png");
+  anchor.download = "sketchpad.png";
+  anchor.click();
+});
+
 /* ========= Tool selection & Custom stickers ========= */
 function updateToolSelection() {
   const isThin = currentTool.kind === "marker" && currentTool === THIN;
@@ -379,19 +406,19 @@ function selectTool(tool: Tool) {
 
 function onAddCustomSticker() {
   const text = prompt("Custom sticker text", "🧽");
-  if (text == null) return; // cancel
+  if (text == null) return;
   const trimmed = text.trim();
-  if (trimmed.length === 0) return; // ignore empty
+  if (trimmed.length === 0) return;
 
   const newSticker: StickerTool = {
     kind: "sticker",
-    label: trimmed, // show same text on button
-    emoji: trimmed, // draw exactly what the user typed
+    label: trimmed,
+    emoji: trimmed,
     size: 28,
   };
   stickers.push(newSticker);
-  renderStickerButtons(); // rebuild buttons including the new one
-  selectTool(newSticker); // auto-select and preview it
+  renderStickerButtons();
+  selectTool(newSticker);
 }
 
 /* Marker tool clicks */
