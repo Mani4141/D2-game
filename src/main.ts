@@ -239,8 +239,8 @@ actionRow.appendChild(exportButton);
 
 /* Canvas */
 const canvas = document.createElement("canvas");
-canvas.width = 256;
-canvas.height = 256;
+canvas.width = 512;
+canvas.height = 512;
 canvas.className = "game-canvas";
 document.body.appendChild(canvas);
 
