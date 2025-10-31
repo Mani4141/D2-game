@@ -8,10 +8,17 @@ interface Draggable {
 }
 type Command = DisplayCommand & Partial<Draggable>;
 
-interface Point { x: number; y: number }
+interface Point {
+  x: number;
+  y: number;
+}
 
 /* ========= Marker (freehand line) ========= */
-function createMarkerLine(start: Point, thickness: number, color = "#00449f"): Command {
+function createMarkerLine(
+  start: Point,
+  thickness: number,
+  color = "#00449f",
+): Command {
   const points: Point[] = [start];
 
   return {
@@ -48,7 +55,8 @@ function createStickerCommand(emoji: string, start: Point, size = 24): Command {
     },
     display(ctx: CanvasRenderingContext2D) {
       ctx.save();
-      ctx.font = `${fontSize}px system-ui, Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji`;
+      ctx.font =
+        `${fontSize}px system-ui, Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(emoji, pos.x, pos.y);
@@ -62,11 +70,16 @@ interface ToolPreview {
   draw(ctx: CanvasRenderingContext2D): void;
   moveTo(x: number, y: number): void;
 }
-function createMarkerPreview(thickness: number, color = "#00449f"): ToolPreview {
+function createMarkerPreview(
+  thickness: number,
+  color = "#00449f",
+): ToolPreview {
   let pos: Point | null = null;
   const r = Math.max(1, thickness / 2);
   return {
-    moveTo(x: number, y: number) { pos = { x, y }; },
+    moveTo(x: number, y: number) {
+      pos = { x, y };
+    },
     draw(ctx: CanvasRenderingContext2D) {
       if (!pos) return;
       ctx.save();
@@ -85,12 +98,15 @@ function createStickerPreview(emoji: string, size = 24): ToolPreview {
   let pos: Point | null = null;
   const fontSize = Math.max(12, size);
   return {
-    moveTo(x: number, y: number) { pos = { x, y }; },
+    moveTo(x: number, y: number) {
+      pos = { x, y };
+    },
     draw(ctx: CanvasRenderingContext2D) {
       if (!pos) return;
       ctx.save();
       ctx.globalAlpha = 0.65;
-      ctx.font = `${fontSize}px system-ui, Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji`;
+      ctx.font =
+        `${fontSize}px system-ui, Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(emoji, pos.x, pos.y);
@@ -105,11 +121,20 @@ const redoStack: Command[] = [];
 let currentCommand: Command | null = null;
 
 /* ========= TOOLS ========= */
-type MarkerTool = { kind: "marker"; label: "Thin" | "Thick"; thickness: number };
-type StickerTool = { kind: "sticker"; label: string; emoji: string; size: number };
+type MarkerTool = {
+  kind: "marker";
+  label: "Thin" | "Thick";
+  thickness: number;
+};
+type StickerTool = {
+  kind: "sticker";
+  label: string;
+  emoji: string;
+  size: number;
+};
 type Tool = MarkerTool | StickerTool;
 
-const THIN: MarkerTool  = { kind: "marker", label: "Thin",  thickness: 2 };
+const THIN: MarkerTool = { kind: "marker", label: "Thin", thickness: 2 };
 const THICK: MarkerTool = { kind: "marker", label: "Thick", thickness: 6 };
 
 /* Stickers are now DATA-DRIVEN off this single array */
@@ -240,8 +265,14 @@ function render() {
   if (!isDrawing && preview) preview.draw(ctx);
 }
 
-canvas.addEventListener(DRAWING_CHANGED as unknown as string, (() => render()) as EventListener);
-canvas.addEventListener(TOOL_MOVED as unknown as string, (() => render()) as EventListener);
+canvas.addEventListener(
+  DRAWING_CHANGED as unknown as string,
+  (() => render()) as EventListener,
+);
+canvas.addEventListener(
+  TOOL_MOVED as unknown as string,
+  (() => render()) as EventListener,
+);
 
 /* ========= Input ========= */
 let isDrawing = false;
@@ -261,7 +292,11 @@ canvas.addEventListener("mousedown", (e: MouseEvent) => {
     currentCommand = createMarkerLine(start, currentTool.thickness);
   } else {
     // Sticker: create placed sticker at cursor
-    currentCommand = createStickerCommand(currentTool.emoji, start, currentTool.size);
+    currentCommand = createStickerCommand(
+      currentTool.emoji,
+      start,
+      currentTool.size,
+    );
   }
 
   displayList.push(currentCommand);
@@ -321,14 +356,15 @@ redoButton.addEventListener("click", redo);
 
 /* ========= Tool selection & Custom stickers ========= */
 function updateToolSelection() {
-  const isThin  = currentTool.kind === "marker" && currentTool === THIN;
+  const isThin = currentTool.kind === "marker" && currentTool === THIN;
   const isThick = currentTool.kind === "marker" && currentTool === THICK;
 
-  thinBtn.classList.toggle("selectedTool",  isThin);
+  thinBtn.classList.toggle("selectedTool", isThin);
   thickBtn.classList.toggle("selectedTool", isThick);
 
   for (const { tool, button } of stickerEntries) {
-    const isSelected = currentTool.kind === "sticker" && currentTool.emoji === tool.emoji;
+    const isSelected = currentTool.kind === "sticker" &&
+      currentTool.emoji === tool.emoji;
     button.classList.toggle("selectedTool", isSelected);
   }
 }
@@ -349,8 +385,8 @@ function onAddCustomSticker() {
 
   const newSticker: StickerTool = {
     kind: "sticker",
-    label: trimmed,  // show same text on button
-    emoji: trimmed,  // draw exactly what the user typed
+    label: trimmed, // show same text on button
+    emoji: trimmed, // draw exactly what the user typed
     size: 28,
   };
   stickers.push(newSticker);
@@ -359,7 +395,7 @@ function onAddCustomSticker() {
 }
 
 /* Marker tool clicks */
-thinBtn.addEventListener("click",  () => selectTool(THIN));
+thinBtn.addEventListener("click", () => selectTool(THIN));
 thickBtn.addEventListener("click", () => selectTool(THICK));
 
 /* Build sticker buttons from data initially */
