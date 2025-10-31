@@ -123,7 +123,7 @@ let currentCommand: Command | null = null;
 /* ========= TOOLS ========= */
 type MarkerTool = {
   kind: "marker";
-  label: "Thin" | "Thick";
+  label: "Fine Pen" | "Bold Pen";
   thickness: number;
 };
 type StickerTool = {
@@ -134,15 +134,19 @@ type StickerTool = {
 };
 type Tool = MarkerTool | StickerTool;
 
-const THIN: MarkerTool = { kind: "marker", label: "Thin", thickness: 2 };
-const THICK: MarkerTool = { kind: "marker", label: "Thick", thickness: 6 };
+// Tuned pen sizes for better feel on mouse and touch
+const THIN: MarkerTool = { kind: "marker", label: "Fine Pen", thickness: 3 };
+const THICK: MarkerTool = { kind: "marker", label: "Bold Pen", thickness: 10 };
 
-/* Stickers are now DATA-DRIVEN off this single array */
+//more stickers!
 const stickers: StickerTool[] = [
-  { kind: "sticker", label: "⭐", emoji: "⭐", size: 28 },
-  { kind: "sticker", label: "❤️", emoji: "❤️", size: 28 },
-  { kind: "sticker", label: "🔥", emoji: "🔥", size: 28 },
-  // Add more by pushing into this array, or via the Custom button below
+  { kind: "sticker", label: "🌟", emoji: "🌟", size: 32 },
+  { kind: "sticker", label: "💎", emoji: "💎", size: 32 },
+  { kind: "sticker", label: "🎯", emoji: "🎯", size: 32 },
+  { kind: "sticker", label: "❤️", emoji: "❤️", size: 32 },
+  { kind: "sticker", label: "🔥", emoji: "🔥", size: 32 },
+  { kind: "sticker", label: "⚡", emoji: "⚡", size: 32 },
+  { kind: "sticker", label: "🍀", emoji: "🍀", size: 32 },
 ];
 
 let currentTool: Tool = THIN;
@@ -179,12 +183,12 @@ controls.appendChild(actionRow);
 
 /* Marker buttons */
 const thinBtn = document.createElement("button");
-thinBtn.textContent = "Thin";
+thinBtn.textContent = "Fine Pen";
 thinBtn.className = "btn tool";
 toolRow.appendChild(thinBtn);
 
 const thickBtn = document.createElement("button");
-thickBtn.textContent = "Thick";
+thickBtn.textContent = "Bold Pen";
 thickBtn.className = "btn tool";
 toolRow.appendChild(thickBtn);
 

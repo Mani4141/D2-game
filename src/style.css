@@ -113,3 +113,18 @@ body {
 .game-canvas {
   cursor: none;
 }
+.tool-row .btn.tool {
+  min-width: 50px;
+  min-height: 38px;
+  font-size: 16px;
+}
+
+.tool.selectedTool {
+  outline: 2px solid #1b6fff;
+  background-color: #2a73e8;
+  box-shadow: 0 0 6px rgba(27, 111, 255, 0.35) inset;
+}
+
+.action-row .btn {
+  min-width: 90px;
+}
