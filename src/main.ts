@@ -151,11 +151,18 @@ const stickers: StickerTool[] = [
 
 let currentTool: Tool = THIN;
 
+/* ========= Step 12 additions ========= */
+function randomHueColor(): string {
+  const h = Math.floor(Math.random() * 360);
+  return `hsla(${h} 90% 50% / 0.9)`; // vivid, marker-like
+}
+let currentMarkerColor = "#00449f";
+
 /* ========= PREVIEW ========= */
 let preview: ToolPreview | null = makePreviewForTool(currentTool);
 function makePreviewForTool(tool: Tool): ToolPreview {
   return tool.kind === "marker"
-    ? createMarkerPreview(tool.thickness)
+    ? createMarkerPreview(tool.thickness, currentMarkerColor)
     : createStickerPreview(tool.emoji, tool.size);
 }
 
@@ -298,7 +305,11 @@ canvas.addEventListener("mousedown", (e: MouseEvent) => {
   const start = pointFromEvent(e);
 
   if (currentTool.kind === "marker") {
-    currentCommand = createMarkerLine(start, currentTool.thickness);
+    currentCommand = createMarkerLine(
+      start,
+      currentTool.thickness,
+      currentMarkerColor,
+    );
   } else {
     // Sticker: create placed sticker at cursor
     currentCommand = createStickerCommand(
@@ -402,10 +413,15 @@ function updateToolSelection() {
 
 function selectTool(tool: Tool) {
   currentTool = tool;
+
+  // Step 12: randomize marker color on each marker selection
+  if (currentTool.kind === "marker") {
+    currentMarkerColor = randomHueColor();
+  }
+
   updateToolSelection();
-  // Recreate preview for the new tool
   preview = makePreviewForTool(currentTool);
-  notifyToolMoved(); // force immediate preview redraw per instructions
+  notifyToolMoved();
 }
 
 function onAddCustomSticker() {

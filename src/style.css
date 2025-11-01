@@ -12,68 +12,15 @@ body {
   color: #111;
 }
 
-/* Controls row for buttons */
-.controls {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
-
-/* Shared button style (used by Clear/Undo/Redo) */
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  background-color: #00449f;
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
-  transition: background-color 0.2s ease, opacity 0.2s ease;
-}
-.btn:hover {
-  background-color: #003080;
-}
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.clear-button {
-  margin-top: 12px;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  background-color: #00449f;
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
-  transition: background-color 0.2s ease;
-}
-.clear-button:hover {
-  background-color: #003080;
-}
-
-.game-canvas {
-  width: 512px;
-  height: 512px;
-  border: 1px solid #000;
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-  display: block;
-  margin-top: 12px;
-  background: #fff;
-}
-/* Tool rows */
+/* Layout for controls */
 .controls {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: 8px;
 }
-.tool-row, .action-row {
+.tool-row,
+.action-row {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -104,27 +51,40 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
-/* Visual feedback for selected tool */
-.tool.selectedTool {
-  outline: 2px solid #111;
-  background-color: #2a66d1;
-}
-.game-canvas {
-  cursor: none;
-}
-.tool-row .btn.tool {
-  min-width: 50px;
-  min-height: 38px;
-  font-size: 16px;
+/* Keyboard accessibility */
+.btn:focus-visible {
+  outline: 2px solid #1b6fff;
+  outline-offset: 2px;
 }
 
+/* Selected tool visual */
 .tool.selectedTool {
   outline: 2px solid #1b6fff;
   background-color: #2a73e8;
   box-shadow: 0 0 6px rgba(27, 111, 255, 0.35) inset;
 }
 
+/* Canvas sizing/visuals (matches main.ts: 512x512) */
+.game-canvas {
+  width: 512px;
+  height: 512px;
+  border: 1px solid #000;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  display: block;
+  margin-top: 12px;
+  background: #fff;
+  cursor: none; /* hide cursor; rely on tool preview */
+}
+
+/* Make tool buttons more tappable */
+.tool-row .btn.tool {
+  min-width: 50px;
+  min-height: 38px;
+  font-size: 16px;
+}
+
+/* Keep action buttons aligned */
 .action-row .btn {
   min-width: 90px;
 }
